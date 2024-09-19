@@ -19,7 +19,6 @@ fn find_password(hash: Vec<u8>) -> String {
     String::new()
 }
 
-
 fn check_len(mut line: String, n: usize) -> Result<String> {
     let l = line.len();
     if l > n {
@@ -29,7 +28,7 @@ fn check_len(mut line: String, n: usize) -> Result<String> {
     } else if l < n {
         println!("Error: There are not enough symbols.");
         return Err(ReadlineError::Eof);
-    } 
+    }
 
     Ok(line)
 }
@@ -101,7 +100,10 @@ fn main() -> Result<()> {
 
                 ":t" => {
                     // pswd = aaaaaa, hash = 0b4e7a0e5fe84ad35fb5f95b9ceeac79
-                    assert_eq!("aaaaaa", find_password(Vec::from(b"0b4e7a0e5fe84ad35fb5f95b9ceeac79")));
+                    assert_eq!(
+                        "aaaaaa",
+                        find_password(Vec::from(b"0b4e7a0e5fe84ad35fb5f95b9ceeac79"))
+                    );
                     // pswd = aaaaab, hash = 9dcf6acc37500e699f572645df6e87fc
                     // pswd = adsfgh, hash = 0789b689641c2c90aee68af7bc0ae403
                     // pswd = ads7gh, hash = 6a53ad86f592a1920ac2cad1b72227b4
