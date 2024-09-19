@@ -34,7 +34,7 @@ fn check_len(mut line: String, n: usize) -> Result<String> {
 }
 
 fn check_line(mut line: String, sem: u8) -> Result<Vec<u8>> {
-    line = line.to_lowercase();
+    line = String::from(line.to_lowercase().trim());
     match sem {
         b'p' => {
             line = check_len(line, 6)?;
@@ -61,7 +61,9 @@ fn parse_hash(s: Vec<u8>) -> Vec<u8> {
                 i += 2;
                 i2 += 1;
             }
-            Err(_) => {}
+            Err(_) => {
+                println!("Error: Failed to parse hash-sum!");
+            }
         };
     }
 
@@ -73,12 +75,12 @@ fn main() -> Result<()> {
     println!(":q -- quit");
     println!(":p -- input password");
     println!(":h -- input hash-sum");
-    println!(":t - run tests");
+    println!(":t -- run tests");
     let mut rl = DefaultEditor::new()?;
     loop {
         let readline = rl.readline(">> ");
         match readline {
-            Ok(line) => match &line.trim()[..] {
+            Ok(line) => match line.trim() {
                 ":p" => {
                     println!("Input 6 symbol password. Allowed symbols are: a-z, 0-9");
                     let password = rl.readline(">> ")?;
@@ -102,14 +104,34 @@ fn main() -> Result<()> {
                     // pswd = aaaaaa, hash = 0b4e7a0e5fe84ad35fb5f95b9ceeac79
                     assert_eq!(
                         "aaaaaa",
-                        find_password(Vec::from(b"0b4e7a0e5fe84ad35fb5f95b9ceeac79"))
+                        find_password(parse_hash(Vec::from("0b4e7a0e5fe84ad35fb5f95b9ceeac79")))
                     );
+                    println!("Test 1 passed");
                     // pswd = aaaaab, hash = 9dcf6acc37500e699f572645df6e87fc
+                    assert_eq!(
+                        "aaaaab",
+                        find_password(parse_hash(Vec::from("9dcf6acc37500e699f572645df6e87fc")))
+                    );
+                    println!("Test 2 passed");
                     // pswd = adsfgh, hash = 0789b689641c2c90aee68af7bc0ae403
+                    assert_eq!(
+                        "adsfgh",
+                        find_password(parse_hash(Vec::from("0789b689641c2c90aee68af7bc0ae403")))
+                    );
+                    println!("Test 3 passed");
                     // pswd = ads7gh, hash = 6a53ad86f592a1920ac2cad1b72227b4
+                    assert_eq!(
+                        "ads7gh",
+                        find_password(parse_hash(Vec::from("6a53ad86f592a1920ac2cad1b72227b4")))
+                    );
+                    println!("Test 4 passed");
                     // pswd = 4a5b6c, hash = 021e26cd1924f3172b911de75c643e0f
-                    // pswd = 123456, hash = 00c66aaf5f2c3f49946f15c1ad2ea0d3
-                    // std::assert_eq!("aaaaaa");
+                    // pswd = 123456, hash = e10adc3949ba59abbe56e057f20f883e
+                    assert_eq!(
+                        "123456",
+                        find_password(parse_hash(Vec::from("e10adc3949ba59abbe56e057f20f883e"))),
+                    );
+                    println!("Test 5 passed");
                 }
                 _ => {
                     println!("Error: unknown option {}!", line);
