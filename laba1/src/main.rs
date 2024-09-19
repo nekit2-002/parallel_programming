@@ -10,9 +10,9 @@ fn find_password(hash:&[u8]) -> Vec<u8> {
 
     let mut pswd = Vec::new();
     for v in perms {
-        if md5::compute(v.as_slice()).as_slice() == hash {
-            
+        if md5::compute(&v).as_slice() == hash {
             pswd = v;
+            break;
         } else {continue;}
     }
 
@@ -69,7 +69,8 @@ fn main() -> Result<()> {
                         hash.push_str(C.as_str());
                         hash.push_str(D.as_str());
                         println!("Hash-sum now is {hash}");
-                        let hash = hash.as_bytes();
+                        let pswd = find_password(hash.as_bytes());
+                        println!("The found password is: {:?}", pswd.as_slice());
                         
                     },
                     ":q" => {
