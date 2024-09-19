@@ -44,14 +44,20 @@ fn check_line(mut line: String, sem: u8) -> Result<Vec<u8>> {
     match sem {
         b'p' => {
             line = check_len(line, 6)?;
-            Ok(Vec::from(line))
         }
         b'h' => {
             line = check_len(line, 32)?;
-            Ok(Vec::from(line))
         }
-        _ => Err(ReadlineError::Eof),
+        _ => return Err(ReadlineError::Eof),
     }
+
+    for c in line.as_bytes().iter() {
+        if !c.is_ascii_alphanumeric() {
+            return Err(ReadlineError::Io(Error::new(ErrorKind::InvalidInput, "String contains invalid passwod/has-sum characters.")));
+        }
+    }
+
+    Ok(Vec::from(line))
 }
 
 fn parse_hash(s: Vec<u8>) -> Result<Vec<u8>> {
