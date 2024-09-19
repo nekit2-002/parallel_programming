@@ -1,6 +1,4 @@
-use std::io;
-
-use itertools::Itertools;
+use itertools::{iproduct, Itertools};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
@@ -8,9 +6,10 @@ fn find_password(hash: Vec<u8>) -> String {
     let chars = "abcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
     let chars = Vec::from(chars);
 
-    let perms = chars.into_iter().permutations(6);
+    let perms = iproduct!(&chars, &chars, &chars, &chars, &chars, &chars);
 
-    for v in perms {
+    for p in perms {
+        let v = Vec::from([*p.0, *p.1, *p.2, *p.3, *p.4, *p.5]);
         let h = Vec::from(md5::compute(&v).as_slice());
         if h == hash {
             return String::from_utf8(v).expect("Failed while converting found password!");
@@ -75,6 +74,7 @@ fn main() -> Result<()> {
     println!(":q -- quit");
     println!(":p -- input password");
     println!(":h -- input hash-sum");
+    println!(":t - run tests");
     let mut rl = DefaultEditor::new()?;
     loop {
         let readline = rl.readline(">> ");
@@ -97,6 +97,17 @@ fn main() -> Result<()> {
                 ":q" => {
                     println!("Quit!");
                     break;
+                }
+
+                ":t" => {
+                    // pswd = aaaaaa, hash = 0b4e7a0e5fe84ad35fb5f95b9ceeac79
+                    assert_eq!("aaaaaa", find_password(Vec::from(b"0b4e7a0e5fe84ad35fb5f95b9ceeac79")));
+                    // pswd = aaaaab, hash = 9dcf6acc37500e699f572645df6e87fc
+                    // pswd = adsfgh, hash = 0789b689641c2c90aee68af7bc0ae403
+                    // pswd = ads7gh, hash = 6a53ad86f592a1920ac2cad1b72227b4
+                    // pswd = 4a5b6c, hash = 021e26cd1924f3172b911de75c643e0f
+                    // pswd = 123456, hash = 00c66aaf5f2c3f49946f15c1ad2ea0d3
+                    // std::assert_eq!("aaaaaa");
                 }
                 _ => {
                     println!("Error: unknown option {}!", line);
