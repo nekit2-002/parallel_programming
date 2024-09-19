@@ -2,7 +2,8 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use itertools::Itertools;
 
-fn find_password(hash:&[u8]) -> Vec<u8> {
+fn find_password(hash:[u8; 16]) -> Vec<u8> {
+    let h = &hash[..];
     let chars = "abcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
     let chars = Vec::from(chars);
 
@@ -10,7 +11,7 @@ fn find_password(hash:&[u8]) -> Vec<u8> {
 
     let mut pswd = Vec::new();
     for v in perms {
-        if md5::compute(&v).as_slice() == hash {
+        if md5::compute(&v).as_slice() == h {
             pswd = v;
             break;
         } else {continue;}
@@ -41,6 +42,25 @@ fn check_password(mut password: String) -> Result<[u8; 6]> {
     Ok(pswd)
 }
 
+fn parse_hash(s: String) -> [u8; 16] {
+    let mut hash: [u8; 16] = [0;16];
+    let mut i = 0;
+    let mut i2 = 0;
+
+    while i < 32 {
+        match u8::from_str_radix(&s[i..i+2], 16) {
+            Ok(n) => {
+                hash[i2] = n;
+                i += 2;
+                i2 += 1;
+            },
+            Err(_) => return hash
+        };
+    }
+
+    hash
+}
+
 fn main() -> Result<()> {
     println!("Following options are avaluable:");
     println!(":q -- quit");
@@ -58,18 +78,13 @@ fn main() -> Result<()> {
                         let password = check_password(password)?;
                         let digest = md5::compute(password);
                         println!("Hash-sum for the password is: {:?}", digest);
+                        println!("Hash-sum for the password is: {:?}", digest.as_slice());
                     },
                     ":h" => {
-                        println!("Input 8 symbols with digits 4 times:");
-                        let mut hash = rl.readline("A = 0x")?;
-                        let B = rl.readline("B = 0x")?;
-                        let C = rl.readline("C = 0x")?;
-                        let D = rl.readline("D = 0x")?;
-                        hash.push_str(B.as_str());
-                        hash.push_str(C.as_str());
-                        hash.push_str(D.as_str());
+                        println!("Input 32 symbols of hash-sum:");
+                        let hash = rl.readline(">> ")?;
                         println!("Hash-sum now is {hash}");
-                        let pswd = find_password(hash.as_bytes());
+                        let pswd = find_password(parse_hash(hash));
                         println!("The found password is: {:?}", pswd.as_slice());
                         
                     },
