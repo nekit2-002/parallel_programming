@@ -1,4 +1,4 @@
-use itertools::{iproduct, Itertools};
+use itertools::iproduct;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
