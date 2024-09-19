@@ -20,48 +20,31 @@ fn find_password(hash: Vec<u8>) -> String {
     String::new()
 }
 
+
+fn check_len(mut line: String, n: usize) -> Result<String> {
+    let l = line.len();
+    if l > n {
+        println!("The input is too long, so it was cut to the appropriate size!");
+        line.drain(n..);
+        println!("Now the input is: {:?}", line);
+    } else if l < n {
+        println!("Error: There are not enough symbols.");
+        return Err(ReadlineError::Eof);
+    } 
+
+    Ok(line)
+}
+
 fn check_line(mut line: String, sem: u8) -> Result<Vec<u8>> {
+    line = line.to_lowercase();
     match sem {
         b'p' => {
-            if line.len() > 6 {
-                println!("Your password is longer then 6 bytes, so it has been cut!");
-                line.drain(6..);
-                println!("Now your password is {line}");
-            }
-
-            let mut pswd = [b'a'; 6];
-
-            for (i, c) in line.as_bytes().iter().enumerate() {
-                if !c.is_ascii_alphanumeric() {
-                    return Err(ReadlineError::Eof);
-                } else if c.is_ascii_uppercase() {
-                    pswd[i] = c.to_ascii_lowercase();
-                    println!("Only lowercase symbols are acceptable, and {c} is in uppercase, so it was lowered.");
-                } else {
-                    pswd[i] = *c;
-                }
-            }
-            Ok(Vec::from(pswd))
+            line = check_len(line, 6)?;
+            Ok(Vec::from(line))
         }
         b'h' => {
-            if line.len() > 32 {
-                println!("Hash contains too many symbols, so it has been cut!");
-                line.drain(32..);
-            }
-
-            let mut hash = [b'a'; 32];
-            for (i, c) in line.as_bytes().iter().enumerate() {
-                if !c.is_ascii_alphanumeric() {
-                    return Err(ReadlineError::Eof);
-                } else if c.is_ascii_uppercase() {
-                    hash[i] = c.to_ascii_lowercase();
-                    println!("Only lowercase symbols are acceptable, and {c} is in uppercase, so it was lowered.");
-                } else {
-                    hash[i] = *c;
-                }
-            }
-
-            Ok(Vec::from(hash))
+            line = check_len(line, 32)?;
+            Ok(Vec::from(line))
         }
         _ => Err(ReadlineError::Eof),
     }
@@ -96,7 +79,7 @@ fn main() -> Result<()> {
     loop {
         let readline = rl.readline(">> ");
         match readline {
-            Ok(line) => match &line[..] {
+            Ok(line) => match &line.trim()[..] {
                 ":p" => {
                     println!("Input 6 symbol password. Allowed symbols are: a-z, 0-9");
                     let password = rl.readline(">> ")?;
