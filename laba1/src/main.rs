@@ -84,15 +84,27 @@ fn main() -> Result<()> {
                 ":p" => {
                     println!("Input 6 symbol password. Allowed symbols are: a-z, 0-9");
                     let password = rl.readline(">> ")?;
-                    let password = check_line(password, b'p')?;
+                    let password = match check_line(password, b'p') {
+                        Ok(v) => v,
+                        Err(err) => {
+                            println!("Error: {}", err);
+                            continue;
+                        }
+                    };
                     let digest = md5::compute(password);
                     println!("Hash-sum for the password is: {:?}", digest);
                 }
                 ":h" => {
                     println!("Input 32 symbols of hash-sum:");
                     let hash = rl.readline(">> ")?;
-                    let hash = check_line(hash, b'h')?;
-                    let pswd = find_password(parse_hash(hash)?);
+                    let hash = match check_line(hash, b'h') {
+                        Ok(v) => v,
+                        Err(err) => {
+                            println!("Error: {}", err);
+                            continue;
+                        }
+                    };
+                    let pswd = find_password(parse_hash(hash)?)?;
                     println!("The found password is: {:?}", pswd);
                 }
                 ":q" => {
