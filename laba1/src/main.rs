@@ -53,7 +53,10 @@ fn check_line(mut line: String, sem: u8) -> Result<Vec<u8>> {
 
     for c in line.as_bytes().iter() {
         if !c.is_ascii_alphanumeric() {
-            return Err(ReadlineError::Io(Error::new(ErrorKind::InvalidInput, "String contains invalid passwod/has-sum characters.")));
+            return Err(ReadlineError::Io(Error::new(
+                ErrorKind::InvalidInput,
+                "String contains invalid passwod/has-sum characters.",
+            )));
         }
     }
 
