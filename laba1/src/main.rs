@@ -1,7 +1,7 @@
-use std::io::{ErrorKind, Error};
 use itertools::iproduct;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
+use std::io::{Error, ErrorKind};
 
 fn find_password(hash: Vec<u8>) -> Result<String> {
     let chars = "abcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
@@ -17,7 +17,10 @@ fn find_password(hash: Vec<u8>) -> Result<String> {
         }
     }
 
-    Err(ReadlineError::Io(Error::new(ErrorKind::NotFound, "Password has not been found!")))
+    Err(ReadlineError::Io(Error::new(
+        ErrorKind::NotFound,
+        "Password has not been found!",
+    )))
 }
 
 fn check_len(mut line: String, n: usize) -> Result<String> {
@@ -27,7 +30,10 @@ fn check_len(mut line: String, n: usize) -> Result<String> {
         line.drain(n..);
         println!("Now the input is: {:?}", line);
     } else if l < n {
-        return Err(ReadlineError::Io(Error::new(ErrorKind::InvalidInput, "There are not enough symbols")));
+        return Err(ReadlineError::Io(Error::new(
+            ErrorKind::InvalidInput,
+            "There are not enough symbols",
+        )));
     }
 
     Ok(line)
@@ -62,7 +68,10 @@ fn parse_hash(s: Vec<u8>) -> Result<Vec<u8>> {
                 i2 += 1;
             }
             Err(_) => {
-                return Err(ReadlineError::Io(Error::new(ErrorKind::InvalidInput, "Failed to parse hash-sum!")));
+                return Err(ReadlineError::Io(Error::new(
+                    ErrorKind::InvalidInput,
+                    "Failed to parse hash-sum!",
+                )));
             }
         };
     }
