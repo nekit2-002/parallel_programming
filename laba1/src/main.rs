@@ -1,26 +1,57 @@
-use itertools::iproduct;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::io::{Error, ErrorKind};
 
-fn find_password(hash: Vec<u8>) -> Result<String> {
-    let chars = "abcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
-    let chars = Vec::from(chars);
+// ascii digits: 48 -- 57
+// ascii lowercase alphabetic: 97 -- 122
+fn iter_bytes(
+    mut pswd: [u8; 6],
+    hash: [u8; 16],
+) -> Result<[u8; 6]> {
+    let mut i = 5;
+    while pswd != *b"zzzzzz" {
+        if hash == md5::compute(pswd).0 && (pswd[i].is_ascii_lowercase() || pswd[i].is_ascii_digit())
+            {return Ok(pswd)}
 
-    let perms = iproduct!(&chars, &chars, &chars, &chars, &chars, &chars);
+        if &pswd[(i)..] != &b"zzzzzz"[(i)..] {
+            pswd[i] += 1;
+            // println!("Index = {i}");
+            i = 5;
+            continue;
+        }
 
-    for p in perms {
-        let v = Vec::from([*p.0, *p.1, *p.2, *p.3, *p.4, *p.5]);
-        let h = Vec::from(md5::compute(&v).as_slice());
-        if h == hash {
-            return Ok(String::from_utf8(v).expect("Unexpected failure!"));
+        let mut c = 0;
+        for idx in [5, 4, 3, 2, 1, 0] {
+            if pswd[idx] != b'z' {break;}
+            c += 1;
+        }
+
+        i -= c;
+        for i2 in (i + 1)..6 {
+            pswd[i2] = b'0';
         }
     }
 
+    if hash == md5::compute(b"zzzzzz").0 {return Ok(pswd);}
+
     Err(ReadlineError::Io(Error::new(
         ErrorKind::NotFound,
-        "Password has not been found!",
+        "Password has not been found",
     )))
+}
+
+
+fn find_password(hash: [u8; 16]) -> Result<String> {
+    let mut pswd: [u8; 6] = [b'0'; 6];
+    pswd = iter_bytes(pswd, hash)?;
+
+    match String::from_utf8(Vec::from(pswd)) {
+        Err(_) => Err(ReadlineError::Io(Error::new(
+            ErrorKind::NotFound,
+            "Failed to find password",
+        ))),
+        Ok(s) => Ok(s),
+    }
 }
 
 fn check_len(mut line: String, n: usize) -> Result<String> {
@@ -63,7 +94,7 @@ fn check_line(mut line: String, sem: u8) -> Result<Vec<u8>> {
     Ok(Vec::from(line))
 }
 
-fn parse_hash(s: Vec<u8>) -> Result<Vec<u8>> {
+fn parse_hash(s: Vec<u8>) -> Result<[u8; 16]> {
     let s1 = String::from_utf8(s).expect("Failed to parse hash");
     let mut hash: [u8; 16] = [0; 16];
     let mut i = 0;
@@ -85,7 +116,7 @@ fn parse_hash(s: Vec<u8>) -> Result<Vec<u8>> {
         };
     }
 
-    Ok(Vec::from(hash))
+    Ok(hash)
 }
 
 fn main() -> Result<()> {
