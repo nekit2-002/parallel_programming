@@ -183,7 +183,7 @@ fn main() -> Result<()> {
                     std::thread::spawn(move ||{
                         let tid = std::thread::current().id();
                         match find_password(needed_hash, [b'9', b'0', b'0', b'0', b'0', b'0'], b"hzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from thread {:?}", pswd, tid);},
+                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
                             Err(err) => {println!("Error: {}", err)}
                         };
 
@@ -193,7 +193,7 @@ fn main() -> Result<()> {
                     std::thread::spawn(move ||{
                         let tid = std::thread::current().id();
                         match find_password(needed_hash, [b'i', b'0', b'0', b'0', b'0', b'0'], b"qzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from thread {:?}", pswd, tid);},
+                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
                             Err(err) => {println!("Error: {}", err)}
                         };
 
@@ -203,7 +203,7 @@ fn main() -> Result<()> {
                     std::thread::spawn(move ||{
                         let tid = std::thread::current().id();
                         match find_password(needed_hash, [b'r', b'0', b'0', b'0', b'0', b'0'], b"zzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from thread {:?}", pswd, tid);},
+                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
                             Err(err) => {println!("Error: {}", err)}
                         };
 
