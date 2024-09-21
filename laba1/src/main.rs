@@ -2,19 +2,20 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::io::{Error, ErrorKind};
 
-// ascii digits: 48 -- 57
-// ascii lowercase alphabetic: 97 -- 122
+// ascii digits: [48; 58)
+// ascii lowercase alphabetic: [97; 122]
 fn iter_bytes(
     mut pswd: [u8; 6],
     hash: [u8; 16],
 ) -> Result<[u8; 6]> {
     let mut i = 5;
     while pswd != *b"zzzzzz" {
-        if hash == md5::compute(pswd).0 && (pswd[i].is_ascii_lowercase() || pswd[i].is_ascii_digit())
+        if hash == md5::compute(pswd).0
             {return Ok(pswd)}
 
-        if &pswd[(i)..] != &b"zzzzzz"[(i)..] {
+        if &pswd[i..] != &b"zzzzzz"[i..] {
             pswd[i] += 1;
+            if pswd[i] == 58 {pswd[i] += 39;}
             // println!("Index = {i}");
             i = 5;
             continue;
