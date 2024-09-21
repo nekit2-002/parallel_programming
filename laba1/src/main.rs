@@ -4,26 +4,27 @@ use std::io::{Error, ErrorKind};
 
 // ascii digits: [48; 58)
 // ascii lowercase alphabetic: [97; 122]
-fn iter_bytes(
-    mut pswd: [u8; 6],
-    hash: [u8; 16],
-    stop_word:&[u8; 6]
-) -> Result<[u8; 6]> {
+fn iter_bytes(mut pswd: [u8; 6], hash: [u8; 16], stop_word: &[u8; 6]) -> Result<[u8; 6]> {
     let mut i = 5;
     while pswd != *stop_word {
-        if hash == md5::compute(pswd).0
-            {return Ok(pswd)}
+        if hash == md5::compute(pswd).0 {
+            return Ok(pswd);
+        }
 
         if &pswd[i..] != &stop_word[i..] {
             pswd[i] += 1;
-            if pswd[i] == 58 {pswd[i] += 39;}
+            if pswd[i] == 58 {
+                pswd[i] += 39;
+            }
             i = 5;
             continue;
         }
 
         let mut c = 0;
         for idx in [5, 4, 3, 2, 1, 0] {
-            if pswd[idx] != b'z' {break;}
+            if pswd[idx] != b'z' {
+                break;
+            }
             c += 1;
         }
 
@@ -33,7 +34,9 @@ fn iter_bytes(
         }
     }
 
-    if hash == md5::compute(stop_word).0 {return Ok(pswd);}
+    if hash == md5::compute(stop_word).0 {
+        return Ok(pswd);
+    }
 
     Err(ReadlineError::Io(Error::new(
         ErrorKind::NotFound,
@@ -41,8 +44,7 @@ fn iter_bytes(
     )))
 }
 
-
-fn find_password(hash: [u8; 16], mut buffer: [u8; 6], stop_word:&[u8; 6]) -> Result<String> {
+fn find_password(hash: [u8; 16], mut buffer: [u8; 6], stop_word: &[u8; 6]) -> Result<String> {
     buffer = iter_bytes(buffer, hash, stop_word)?;
 
     match String::from_utf8(Vec::from(buffer)) {
@@ -170,47 +172,75 @@ fn main() -> Result<()> {
                     };
 
                     let needed_hash = parse_hash(hash)?.clone();
-                    std::thread::spawn(move ||{
+                    std::thread::spawn(move || {
                         let tid = std::thread::current().id();
                         match find_password(needed_hash, [b'0'; 6], b"8zzzzz") {
-                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
-                            Err(err) => {println!("Error: {}", err)}
+                            Ok(pswd) => {
+                                println!("Found password {} from {:?}", pswd, tid);
+                            }
+                            Err(err) => {
+                                println!("Error: {}", err)
+                            }
                         }
 
                         std::process::exit(0);
                     });
 
-                    std::thread::spawn(move ||{
+                    std::thread::spawn(move || {
                         let tid = std::thread::current().id();
-                        match find_password(needed_hash, [b'9', b'0', b'0', b'0', b'0', b'0'], b"hzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
-                            Err(err) => {println!("Error: {}", err)}
+                        match find_password(
+                            needed_hash,
+                            [b'9', b'0', b'0', b'0', b'0', b'0'],
+                            b"hzzzzz",
+                        ) {
+                            Ok(pswd) => {
+                                println!("Found password {} from {:?}", pswd, tid);
+                            }
+                            Err(err) => {
+                                println!("Error: {}", err)
+                            }
                         };
 
                         std::process::exit(0);
                     });
 
-                    std::thread::spawn(move ||{
+                    std::thread::spawn(move || {
                         let tid = std::thread::current().id();
-                        match find_password(needed_hash, [b'i', b'0', b'0', b'0', b'0', b'0'], b"qzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
-                            Err(err) => {println!("Error: {}", err)}
+                        match find_password(
+                            needed_hash,
+                            [b'i', b'0', b'0', b'0', b'0', b'0'],
+                            b"qzzzzz",
+                        ) {
+                            Ok(pswd) => {
+                                println!("Found password {} from {:?}", pswd, tid);
+                            }
+                            Err(err) => {
+                                println!("Error: {}", err)
+                            }
                         };
 
                         std::process::exit(0);
                     });
 
-                    std::thread::spawn(move ||{
+                    std::thread::spawn(move || {
                         let tid = std::thread::current().id();
-                        match find_password(needed_hash, [b'r', b'0', b'0', b'0', b'0', b'0'], b"zzzzzz") {
-                            Ok(pswd) => {println!("Found password {} from {:?}", pswd, tid);},
-                            Err(err) => {println!("Error: {}", err)}
+                        match find_password(
+                            needed_hash,
+                            [b'r', b'0', b'0', b'0', b'0', b'0'],
+                            b"zzzzzz",
+                        ) {
+                            Ok(pswd) => {
+                                println!("Found password {} from {:?}", pswd, tid);
+                            }
+                            Err(err) => {
+                                println!("Error: {}", err)
+                            }
                         };
 
                         std::process::exit(0);
                     });
                 }
-                
+
                 ":q" => {
                     println!("Quit!");
                     break;
@@ -220,32 +250,52 @@ fn main() -> Result<()> {
                     // pswd = aaaaaa, hash = 0b4e7a0e5fe84ad35fb5f95b9ceeac79
                     assert_eq!(
                         "aaaaaa",
-                        find_password(parse_hash(Vec::from("0b4e7a0e5fe84ad35fb5f95b9ceeac79"))?, [b'0'; 6], b"zzzzzz")?
+                        find_password(
+                            parse_hash(Vec::from("0b4e7a0e5fe84ad35fb5f95b9ceeac79"))?,
+                            [b'0'; 6],
+                            b"zzzzzz"
+                        )?
                     );
                     println!("Test 1 passed");
                     // pswd = aaaaab, hash = 9dcf6acc37500e699f572645df6e87fc
                     assert_eq!(
                         "aaaaab",
-                        find_password(parse_hash(Vec::from("9dcf6acc37500e699f572645df6e87fc"))?, [b'0'; 6], b"zzzzzz")?
+                        find_password(
+                            parse_hash(Vec::from("9dcf6acc37500e699f572645df6e87fc"))?,
+                            [b'0'; 6],
+                            b"zzzzzz"
+                        )?
                     );
                     println!("Test 2 passed");
                     // pswd = adsfgh, hash = 0789b689641c2c90aee68af7bc0ae403
                     assert_eq!(
                         "adsfgh",
-                        find_password(parse_hash(Vec::from("0789b689641c2c90aee68af7bc0ae403"))?, [b'0'; 6], b"zzzzzz")?
+                        find_password(
+                            parse_hash(Vec::from("0789b689641c2c90aee68af7bc0ae403"))?,
+                            [b'0'; 6],
+                            b"zzzzzz"
+                        )?
                     );
                     println!("Test 3 passed");
                     // pswd = ads7gh, hash = 6a53ad86f592a1920ac2cad1b72227b4
                     assert_eq!(
                         "ads7gh",
-                        find_password(parse_hash(Vec::from("6a53ad86f592a1920ac2cad1b72227b4"))?, [b'0'; 6], b"zzzzzz")?
+                        find_password(
+                            parse_hash(Vec::from("6a53ad86f592a1920ac2cad1b72227b4"))?,
+                            [b'0'; 6],
+                            b"zzzzzz"
+                        )?
                     );
                     println!("Test 4 passed");
                     // pswd = 4a5b6c, hash = 021e26cd1924f3172b911de75c643e0f
                     // pswd = 123456, hash = e10adc3949ba59abbe56e057f20f883e
                     assert_eq!(
                         "123456",
-                        find_password(parse_hash(Vec::from("e10adc3949ba59abbe56e057f20f883e"))?, [b'0'; 6], b"zzzzzz")?
+                        find_password(
+                            parse_hash(Vec::from("e10adc3949ba59abbe56e057f20f883e"))?,
+                            [b'0'; 6],
+                            b"zzzzzz"
+                        )?
                     );
                     println!("Test 5 passed");
                 }
