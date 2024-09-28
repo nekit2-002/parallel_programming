@@ -76,29 +76,6 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   return std::nullopt;
 }
 
-std::optional<std::string> omp_search(std::string hash) {
-  std::string pswd = "";
-  std::string chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-
-  auto prod =
-      std::views::cartesian_product(chars, chars, chars, chars, chars, chars);
-  for (auto it : prod) {
-    const auto [a, b, c, d, e, f] = it;
-    pswd.push_back(a);
-    pswd.push_back(b);
-    pswd.push_back(c);
-    pswd.push_back(d);
-    pswd.push_back(e);
-    pswd.push_back(f);
-
-    if (md5(pswd) == hash) {
-      return std::optional<std::string>{pswd};
-    }
-    pswd.clear();
-  }
-
-  return std::nullopt;
-}
 
 void *find_password(void *args) {
   pthread_t id = pthread_self();
@@ -168,12 +145,11 @@ int main() {
   std::cout << "Following options are avaluable:" << std::endl;
   std::cout << "1 -- quit" << std::endl;
   std::cout << "2 -- input password" << std::endl;
-  std::cout << "3 -- run omp parallel process of password search" << std::endl;
   std::cout
-      << "4 -- run \"pthread_create\" parallel execuion of the password search"
+      << "3 -- run \"pthread_create\" parallel execuion of the password search"
       << std::endl;
 
-  std::cout << "5 -- run single thread search of the password" << std::endl;
+  std::cout << "4 -- run single thread search of the password" << std::endl;
   char option;
   std::cout << ">> ";
   std::cin >> option;
@@ -200,30 +176,6 @@ int main() {
   }
 
   case '3': {
-    std::cout
-        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
-        << std::endl;
-    std::cout << ">> ";
-    std::string hash;
-    std::cin >> hash;
-    std::cout << std::endl;
-
-    auto res = check_line(hash, 'h');
-    if (res == std::nullopt) {
-      std::cout << "Invalid hash!" << std::endl;
-      break;
-    }
-
-    res = omp_search(hash);
-    (res == std::nullopt)
-        ? std::cout << "Password has not been found!" << std::endl
-        : std::cout << "Found password via omp search, the password is: "
-                    << *res << std::endl;
-
-    break;
-  }
-
-  case '4': {
     std::cout
         << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
         << std::endl;
@@ -281,7 +233,7 @@ int main() {
 
     break;
   }
-  case '5': {
+  case '4': {
     std::cout
         << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
         << std::endl;
