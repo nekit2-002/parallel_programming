@@ -6,6 +6,7 @@
 #include <openssl/md5.h>
 #include <optional>
 #include <pthread.h>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -70,6 +71,30 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   if (hash == md5(pswd)) {
     found.store(true);
     return pswd;
+  }
+
+  return std::nullopt;
+}
+
+std::optional<std::string> omp_search(std::string hash) {
+  std::string pswd = "";
+  std::string chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+  auto prod =
+      std::views::cartesian_product(chars, chars, chars, chars, chars, chars);
+  for (auto it : prod) {
+    const auto [a, b, c, d, e, f] = it;
+    pswd.push_back(a);
+    pswd.push_back(b);
+    pswd.push_back(c);
+    pswd.push_back(d);
+    pswd.push_back(e);
+    pswd.push_back(f);
+
+    if (md5(pswd) == hash) {
+      return std::optional<std::string>{pswd};
+    }
+    pswd.clear();
   }
 
   return std::nullopt;
@@ -175,6 +200,26 @@ int main() {
   }
 
   case '3': {
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+    std::cout << std::endl;
+
+    auto res = check_line(hash, 'h');
+    if (res == std::nullopt) {
+      std::cout << "Invalid hash!" << std::endl;
+      break;
+    }
+
+    res = omp_search(hash);
+    (res == std::nullopt)
+        ? std::cout << "Password has not been found!" << std::endl
+        : std::cout << "Found password via omp search, the password is: "
+                    << *res << std::endl;
+
     break;
   }
 
