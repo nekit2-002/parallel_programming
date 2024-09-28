@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <iomanip>
 #include <iostream>
 #include <locale>
@@ -10,7 +11,9 @@
 #include <vector>
 
 #define ERROR_CREATE_THREAD -11
+#define ERROR_JOIN_THREAD -12
 #define SUCCESS 0
+std::atomic<bool> found(false);
 
 std::string md5(const std::string &pswd) {
   unsigned char hash[MD5_DIGEST_LENGTH];
@@ -32,8 +35,9 @@ std::string md5(const std::string &pswd) {
 std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
                                       std::string stop_word) {
   int i = 5;
-  while (pswd != stop_word) {
+  while (pswd != stop_word && !found.load()) {
     if (hash == md5(pswd)) {
+      found.store(true);
       return std::optional<std::string>{pswd};
     }
 
@@ -61,11 +65,10 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
     for (int i2 = i + 1; i2 < 6; i2++) {
       pswd[i2] = '0';
     }
-
-    // std::cout << pswd << std::endl;
   }
 
   if (hash == md5(pswd)) {
+    found.store(true);
     return pswd;
   }
 
@@ -75,7 +78,6 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
 void *find_password(void *args) {
   pthread_t id = pthread_self();
   std::string s = *(static_cast<std::string *>(args));
-  //   std::cout << s << std::endl;
   std::stringstream ss(s);
   std::string word;
   std::vector<std::string> hash_start_stop;
@@ -85,18 +87,16 @@ void *find_password(void *args) {
 
   auto res =
       iter_bytes(hash_start_stop[1], hash_start_stop[0], hash_start_stop[2]);
-  (res == std::nullopt)
-      ? std::cout << "Failed to find password from thread " << id << std::endl
-      : std::cout << "Found password in thread " << id
-                  << ", the password is: " << *res << std::endl;
+  if (res != std::nullopt) {
+    std::cout << "Found password in thread " << id
+              << ", the password is: " << *res << std::endl;
+  }
 
   return args;
 }
 
 std::optional<std::string> check_len(std::string line, std::size_t n) {
   auto l = line.length();
-  // std::cout << "The input is too long, so it was cut to the appropriate
-  // size!" << std::endl;
   if (l > n) {
     std::cout << "The input is too long, so it was cut to the appropriate size!"
               << std::endl;
@@ -118,8 +118,8 @@ std::optional<std::string> check_line(std::string line, char sem) {
       return std::nullopt;
     }
 
-    if (sem == 'h' && c > 'f'){
-        return std::nullopt;
+    if (sem == 'h' && c > 'f') {
+      return std::nullopt;
     }
     std::tolower(c);
   }
@@ -150,110 +150,113 @@ int main() {
 
   std::cout << "5 -- run single thread search of the password" << std::endl;
   char option;
-  do {
+  std::cout << ">> ";
+  std::cin >> option;
+  switch (option) {
+  case '1': {
+    std::cout << "Quit!" << std::endl;
+    break;
+  }
+
+  case '2': {
+    std::cout << "Input 6 bytes of password. Symbols a-z and 0-9 are permitted."
+              << std::endl;
     std::cout << ">> ";
-    std::cin >> option;
-    switch (option) {
-    case '1': {
-      std::cout << "Quit!" << std::endl;
+    std::string pswd;
+    std::cin >> pswd;
+    auto res = check_line(pswd, 'p');
+    if (res == std::nullopt) {
+      std::cout << "Invalid password!" << std::endl;
       break;
     }
 
-    case '2': {
-      std::cout
-          << "Input 6 bytes of password. Symbols a-z and 0-9 are permitted."
-          << std::endl;
-      std::cout << ">> ";
-      std::string pswd;
-      std::cin >> pswd;
-      auto res = check_line(pswd, 'p');
-      if (res == std::nullopt) {
-        std::cout << "Invalid password!" << std::endl;
-        break;
-      }
+    std::cout << "Hash for the password is: " << md5(pswd) << std::endl;
+    break;
+  }
 
-      std::cout << "Hash for the password is: " << md5(pswd) << std::endl;
+  case '3': {
+    break;
+  }
+
+  case '4': {
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+    std::cout << std::endl;
+
+    auto res = check_line(hash, 'h');
+    if (res == std::nullopt) {
+      std::cout << "Invalid hash!" << std::endl;
       break;
     }
 
-    case '3': {
+    auto args1 = (*res + " " + "000000 " + "8zzzzz");
+    auto args2 = (*res + " " + "900000 " + "hzzzzz");
+    auto args3 = (*res + " " + "i00000 " + "qzzzzz");
+    auto args4 = (*res + " " + "r00000 " + "zzzzzz");
+
+    pthread_t thread1, thread2, thread3, thread4;
+    int status1, status2, status3, status4;
+
+    status1 =
+        pthread_create(&thread1, 0, find_password, static_cast<void *>(&args1));
+    if (status1 != 0) {
+      printf("main error: can't create thread, status = %d\n", status1);
+      exit(ERROR_CREATE_THREAD);
+    }
+
+    status2 =
+        pthread_create(&thread2, 0, find_password, static_cast<void *>(&args2));
+    if (status2 != 0) {
+      printf("main error: can't create thread, status = %d\n", status2);
+      exit(ERROR_CREATE_THREAD);
+    }
+
+    status3 =
+        pthread_create(&thread3, 0, find_password, static_cast<void *>(&args3));
+    if (status3 != 0) {
+      printf("main error: can't create thread, status = %d\n", status3);
+      exit(ERROR_CREATE_THREAD);
+    }
+
+    status4 =
+        pthread_create(&thread4, 0, find_password, static_cast<void *>(&args4));
+    if (status4 != 0) {
+      printf("main error: can't create thread, status = %d\n", status4);
+      exit(ERROR_CREATE_THREAD);
+    }
+
+    pthread_join(thread1, 0);
+    pthread_join(thread2, 0);
+    pthread_join(thread3, 0);
+    pthread_join(thread4, 0);
+
+    break;
+  }
+  case '5': {
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+
+    auto res = check_line(hash, 'h');
+    if (res == std::nullopt) {
+      std::cout << "Invalid hash!" << std::endl;
       break;
     }
 
-    case '4': {
-      std::cout
-          << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
-          << std::endl;
-      std::cout << ">> ";
-      std::string hash;
-      std::cin >> hash;
-
-      auto res = check_line(hash, 'h');
-      if (res == std::nullopt) {
-        std::cout << "Invalid hash!" << std::endl;
-        break;
-      }
-
-      auto args1 = (*res + " " + "000000 " + "8zzzzz");
-      auto args2 = (*res + " " + "900000 " + "hzzzzz");
-      auto args3 = (*res + " " + "i00000 " + "qzzzzz");
-      auto args4 = (*res + " " + "r00000 " + "zzzzzz");
-
-      pthread_t thread1, thread2, thread3, thread4;
-      int status1, status2, status3, status4;
-
-      status1 = pthread_create(&thread1, 0, find_password,
-                               static_cast<void *>(&args1));
-      if (status1 != 0) {
-        printf("main error: can't create thread, status = %d\n", status1);
-        exit(ERROR_CREATE_THREAD);
-      }
-
-      status2 = pthread_create(&thread2, 0, find_password,
-                               static_cast<void *>(&args2));
-      if (status2 != 0) {
-        printf("main error: can't create thread, status = %d\n", status2);
-        exit(ERROR_CREATE_THREAD);
-      }
-
-      status3 = pthread_create(&thread3, 0, find_password,
-                               static_cast<void *>(&args3));
-      if (status3 != 0) {
-        printf("main error: can't create thread, status = %d\n", status3);
-        exit(ERROR_CREATE_THREAD);
-      }
-
-      status4 = pthread_create(&thread4, 0, find_password,
-                               static_cast<void *>(&args4));
-      if (status4 != 0) {
-        printf("main error: can't create thread, status = %d\n", status4);
-        exit(ERROR_CREATE_THREAD);
-      }
-
-      break;
-    }
-    case '5': {
-      std::cout
-          << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
-          << std::endl;
-      std::cout << ">> ";
-      std::string hash;
-      std::cin >> hash;
-
-      auto res = check_line(hash, 'h');
-      if (res == std::nullopt) {
-        std::cout << "Invalid hash!" << std::endl;
-        break;
-      }
-
-      auto args = (*res + " " + "000000 " + "zzzzzz");
-      find_password(static_cast<void *>(&args));
-      break;
-    }
-    default:
-      break;
-    }
-  } while (option != '1');
+    auto args = (*res + " " + "000000 " + "zzzzzz");
+    find_password(static_cast<void *>(&args));
+    break;
+  }
+  default:
+    break;
+  }
 
   return 0;
 }
