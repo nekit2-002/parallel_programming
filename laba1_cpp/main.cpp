@@ -2,13 +2,10 @@
 #include <atomic>
 #include <iomanip>
 #include <iostream>
-#include <locale>
 #include <openssl/md5.h>
 #include <optional>
 #include <pthread.h>
-#include <ranges>
 #include <sstream>
-#include <string>
 #include <vector>
 
 #define ERROR_CREATE_THREAD -11
