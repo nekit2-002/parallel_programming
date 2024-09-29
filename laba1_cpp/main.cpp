@@ -76,7 +76,6 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   return std::nullopt;
 }
 
-
 void *find_password(void *args) {
   pthread_t id = pthread_self();
   std::string s = *(static_cast<std::string *>(args));
@@ -141,6 +140,30 @@ std::optional<std::string> check_line(std::string line, char sem) {
   }
 }
 
+void omp_search(const std::string &target_hash) {
+  struct Range {
+    std::string start;
+    std::string end;
+  };
+
+  // Определяем диапазоны
+  std::vector<Range> ranges = {{"000000", "8zzzzz"},
+                               {"900000", "hzzzzz"},
+                               {"i00000", "qzzzzz"},
+                               {"r00000", "zzzzzz"}};
+
+#pragma omp parallel for num_threads(4)
+  for (int i = 0; i < ranges.size(); ++i) {
+    auto result = iter_bytes(ranges[i].start, target_hash, ranges[i].end);
+    if (result) {
+#pragma omp critical
+      {
+        std::cout << "Password found. The password is " << *result << std::endl;
+      }
+    }
+  }
+}
+
 int main() {
   std::cout << "Following options are avaluable:" << std::endl;
   std::cout << "1 -- quit" << std::endl;
@@ -150,6 +173,7 @@ int main() {
       << std::endl;
 
   std::cout << "4 -- run single thread search of the password" << std::endl;
+  std::cout << "5 -- run omp parallel search for password" << std::endl;
   char option;
   std::cout << ">> ";
   std::cin >> option;
@@ -166,7 +190,7 @@ int main() {
     std::string pswd;
     std::cin >> pswd;
     auto res = check_line(pswd, 'p');
-    if (res == std::nullopt) {
+    if (!res) {
       std::cout << "Invalid password!" << std::endl;
       break;
     }
@@ -185,7 +209,7 @@ int main() {
     std::cout << std::endl;
 
     auto res = check_line(hash, 'h');
-    if (res == std::nullopt) {
+    if (!res) {
       std::cout << "Invalid hash!" << std::endl;
       break;
     }
@@ -242,13 +266,32 @@ int main() {
     std::cin >> hash;
 
     auto res = check_line(hash, 'h');
-    if (res == std::nullopt) {
+    if (!res) {
       std::cout << "Invalid hash!" << std::endl;
       break;
     }
 
     auto args = (*res + " " + "000000 " + "zzzzzz");
     find_password(static_cast<void *>(&args));
+    break;
+  }
+
+  case '5': {
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+
+    auto res = check_line(hash, 'h');
+    if (!res) {
+      std::cout << "Invalid hash!" << std::endl;
+      break;
+    }
+
+    omp_search(*res);
+
     break;
   }
   default:
