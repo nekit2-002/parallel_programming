@@ -143,7 +143,6 @@ void omp_search(const std::string &target_hash) {
     std::string end;
   };
 
-  // Определяем диапазоны
   std::vector<Range> ranges = {{"000000", "8zzzzz"},
                                {"900000", "hzzzzz"},
                                {"i00000", "qzzzzz"},
@@ -288,7 +287,6 @@ int main() {
     }
 
     omp_search(*res);
-
     break;
   }
   default:
