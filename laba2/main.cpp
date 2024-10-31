@@ -3,8 +3,8 @@
 #include <iomanip>
 #include <iostream>
 #include <openssl/md5.h>
+#include <unistd.h>
 #include <optional>
-#include <pthread.h>
 #include <sstream>
 #include <vector>
 
@@ -73,7 +73,7 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   return std::nullopt;
 }
 
-void find_password(std::string args) {
+std::optional<std::string> find_password(std::string args) {
   std::stringstream ss(args);
   std::string word;
   std::vector<std::string> hash_start_stop;
@@ -86,6 +86,8 @@ void find_password(std::string args) {
   if (res != std::nullopt) {
     std::cout << "Found password, the password is: " << *res << std::endl;
   }
+
+  return res;
 }
 
 std::optional<std::string> check_len(std::string line, std::size_t n) {
