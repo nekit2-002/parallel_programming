@@ -142,49 +142,50 @@ int main() {
   std::cout << ">> ";
   std::cin >> option;
   while (option != '1') {
-  switch (option) {
-  case '2': {
-    std::cout << "Input 6 bytes of password. Symbols a-z and 0-9 are permitted."
-              << std::endl;
-    std::cout << ">> ";
-    std::string pswd;
-    std::cin >> pswd;
-    auto res = check_line(pswd, 'p');
-    if (!res) {
-      std::cout << "Invalid password!" << std::endl;
+    switch (option) {
+    case '2': {
+      std::cout
+          << "Input 6 bytes of password. Symbols a-z and 0-9 are permitted."
+          << std::endl;
+      std::cout << ">> ";
+      std::string pswd;
+      std::cin >> pswd;
+      auto res = check_line(pswd, 'p');
+      if (!res) {
+        std::cout << "Invalid password!" << std::endl;
+        break;
+      }
+
+      std::cout << "Hash for the password is: " << md5(pswd) << std::endl;
       break;
     }
 
-    std::cout << "Hash for the password is: " << md5(pswd) << std::endl;
-    break;
-  }
+    case '3': {
+      std::cout
+          << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+          << std::endl;
+      std::cout << ">> ";
+      std::string hash;
+      std::cin >> hash;
 
-  case '3': {
-    std::cout
-        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
-        << std::endl;
-    std::cout << ">> ";
-    std::string hash;
-    std::cin >> hash;
+      auto res = check_line(hash, 'h');
+      if (!res) {
+        std::cout << "Invalid hash!" << std::endl;
+        break;
+      }
 
-    auto res = check_line(hash, 'h');
-    if (!res) {
-      std::cout << "Invalid hash!" << std::endl;
+      auto args = (*res + " " + "000000 " + "zzzzzz");
+      find_password(args);
       break;
     }
 
-    auto args = (*res + " " + "000000 " + "zzzzzz");
-    find_password(args);
-    break;
-  }
-
-  default:{
-    std::cout << "Invalid option!" << std::endl;
-    break;
-  }
-  }
-  std::cout << ">> ";
-  std::cin >> option;
+    default: {
+      std::cout << "Invalid option!" << std::endl;
+      break;
+    }
+    }
+    std::cout << ">> ";
+    std::cin >> option;
   }
 
   return 0;
