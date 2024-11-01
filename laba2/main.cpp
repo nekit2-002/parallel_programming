@@ -215,7 +215,7 @@ int main() {
           return 0;
         }
 
-        char pswd[6];
+        char pswd[7] = {0};
         read(fds[0], pswd, 6);
         close(fds[0]);
         auto r = std::string{pswd};
@@ -239,7 +239,6 @@ int main() {
         if (res) {
           write(fds1[1], (*res).c_str(), 6);
           kill(0, SIGTERM);
-          exit(0);
         }
 
         close(fds1[1]);
@@ -258,13 +257,12 @@ int main() {
         close(fds[0]);
         res = iter_bytes("900000", hash, "hzzzzz");
         if (res) {
-          // std::cout << "Password found: " << *res << std::endl;
+          std::cout << "Password found: " << *res << std::endl;
           write(fds[1], (*res).c_str(), 6);
           kill(0, SIGTERM);
-          exit(0);
         }
 
-        char pswd[6];
+        char pswd[7] = {0};
         read(fds1[0], pswd, 6); // check if fds1 contains our password
         auto r = std::string{pswd};
         if (!r.empty()) {
@@ -281,7 +279,6 @@ int main() {
         if (res) {
           write(fds1[1], (*res).c_str(), 6);
           kill(0, SIGTERM);
-          exit(0);
         }
 
         close(fds1[1]);
