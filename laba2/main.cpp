@@ -5,14 +5,13 @@
 #include <openssl/md5.h>
 #include <optional>
 #include <sstream>
-#include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <vector>
 
 #define ERROR_CREATE_THREAD -11
 #define ERROR_JOIN_THREAD -12
 #define SUCCESS 0
-std::atomic<bool> found(false);
 
 std::string md5(const std::string &pswd) {
   unsigned char hash[MD5_DIGEST_LENGTH];
@@ -31,12 +30,12 @@ std::string md5(const std::string &pswd) {
   return ss.str();
 }
 
+// single thread overload
 std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
                                       std::string stop_word) {
   int i = 5;
-  while (pswd != stop_word && !found.load()) {
+  while (pswd != stop_word) {
     if (hash == md5(pswd)) {
-      found.store(true);
       return std::optional<std::string>{pswd};
     }
 
@@ -67,7 +66,6 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   }
 
   if (hash == md5(pswd)) {
-    found.store(true);
     return std::optional<std::string>{pswd};
   }
 
@@ -213,6 +211,7 @@ int main() {
         res = iter_bytes("000000", hash, "8zzzzz");
         if (res) {
           std::cout << "Found password: " << *res << std::endl;
+          kill(0, SIGTERM);
           return 0;
         }
 
@@ -239,6 +238,8 @@ int main() {
         res = iter_bytes("i00000", hash, "qzzzzz");
         if (res) {
           write(fds1[1], (*res).c_str(), 6);
+          kill(0, SIGTERM);
+          exit(0);
         }
 
         close(fds1[1]);
@@ -257,8 +258,9 @@ int main() {
         close(fds[0]);
         res = iter_bytes("900000", hash, "hzzzzz");
         if (res) {
-          std::cout << "Password found: " << *res << std::endl;
+          // std::cout << "Password found: " << *res << std::endl;
           write(fds[1], (*res).c_str(), 6);
+          kill(0, SIGTERM);
           exit(0);
         }
 
@@ -278,6 +280,8 @@ int main() {
         res = iter_bytes("r00000", hash, "zzzzzz");
         if (res) {
           write(fds1[1], (*res).c_str(), 6);
+          kill(0, SIGTERM);
+          exit(0);
         }
 
         close(fds1[1]);
