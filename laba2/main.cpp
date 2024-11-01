@@ -10,10 +10,6 @@
 #include <unistd.h>
 #include <vector>
 
-#define ERROR_CREATE_THREAD -11
-#define ERROR_JOIN_THREAD -12
-#define SUCCESS 0
-
 std::string md5(const std::string &pswd) {
   unsigned char hash[MD5_DIGEST_LENGTH];
 
