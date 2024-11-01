@@ -117,6 +117,26 @@ std::optional<std::string> check_line(std::string line, char sem) {
   }
 }
 
+void run_search(std::optional<std::string> res, int i, int pids[2]) {
+  std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
+  std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
+
+  res = iter_bytes(starts[i], *res, ends[i]);
+  if (res) {
+    for (int j = 0; j < 4; j++) {
+      int p;
+      read(pids[0], &p, sizeof(int));
+      if (getpid() != p) {
+        kill(p, SIGTERM);
+      }
+    }
+
+    close(pids[0]);
+    std::cout << "Password found: " << *res << std::endl;
+    exit(0);
+  }
+}
+
 int main() {
   std::cout << "Following options are avaluable:" << std::endl;
   std::cout << "1 -- quit" << std::endl;
@@ -182,9 +202,6 @@ int main() {
       break;
     }
 
-    std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
-    std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
-
     int pids[2];
     if (pipe(pids) != 0) {
       std::cout << "Failed to bulid a pipe!" << std::endl;
@@ -197,63 +214,13 @@ int main() {
     write(pids[1], &current, sizeof(int)); // put current pid into pids pipe
     close(pids[1]);
     if (mainpid > 0 && splitpid > 0) { // parent inside main ~ main
-      res = iter_bytes(starts[0], *res, ends[0]);
-      if (res) {
-        for (int i = 0; i < 4; i++) {
-          int p;
-          read(pids[0], &p, sizeof(int));
-          if (getpid() != p) {
-            kill(p, SIGTERM);
-          }
-        }
-        std::cout << "Password found: " << *res << std::endl;
-        exit(0);
-      }
-    }
-
-    else if (mainpid > 0 && splitpid == 0) { // child inside main
-      res = iter_bytes(starts[1], *res, ends[1]);
-      if (res) {
-        for (int i = 0; i < 4; i++) {
-          int p;
-          read(pids[0], &p, sizeof(int));
-          if (getpid() != p) {
-            kill(p, SIGTERM);
-          }
-        }
-        close(pids[0]);
-        std::cout << "Password found: " << *res << std::endl;
-        exit(0);
-      }
+      run_search(res, 0, pids);
+    } else if (mainpid > 0 && splitpid == 0) { // child inside main
+      run_search(res, 1, pids);
     } else if (mainpid == 0 && splitpid > 0) { // parent inside child
-      res = iter_bytes(starts[2], *res, ends[2]);
-
-      if (res) {
-        for (int i = 0; i < 4; i++) {
-          int p;
-          read(pids[0], &p, sizeof(int));
-          if (getpid() != p) {
-            kill(p, SIGTERM);
-          }
-        }
-        close(pids[0]);
-        std::cout << "Password found: " << *res << std::endl;
-        exit(0);
-      }
+      run_search(res, 2, pids);
     } else { // child inside child
-      res = iter_bytes(starts[3], *res, ends[3]);
-      if (res) {
-        for (int i = 0; i < 4; i++) {
-          int p;
-          read(pids[0], &p, sizeof(int));
-          if (getpid() != p) {
-            kill(p, SIGTERM);
-          }
-        }
-        close(pids[0]);
-        std::cout << "Password found: " << *res << std::endl;
-        exit(0);
-      }
+      run_search(res, 3, pids);
     }
   }
 
