@@ -5,8 +5,10 @@
 #include <optional>
 #include <signal.h>
 #include <sstream>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <vector>
+#include <fcntl.h>
 
 std::string md5(const std::string &pswd) {
   unsigned char hash[MD5_DIGEST_LENGTH];
@@ -137,7 +139,9 @@ int main() {
   std::cout << "2 -- input password" << std::endl;
   std::cout << "3 -- run single thread search of the password" << std::endl;
   std::cout << "4 -- run parallel search via double fork()" << std::endl;
-
+  std::cout << "5 -- run parallel search  via double fork() with shared memory"
+            << std::endl;
+  std::cout << "6 -- run parallel search via  double fork() with shm_open" << std::endl;
   char option;
   std::cout << ">> ";
   std::cin >> option;
@@ -217,6 +221,145 @@ int main() {
       run_search(res, 3, pids);
     }
   }
+
+  case '5': {
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+
+    auto res = check_line(hash, 'h');
+    if (!res) {
+      std::cout << "Invalid hash!" << std::endl;
+      break;
+    }
+
+    // shared memory instead of pipe
+    int *pids = (int *)mmap(NULL, 4 * sizeof(int), PROT_READ | PROT_WRITE,
+                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (pids == MAP_FAILED) {
+      std::cout << "Failed to create shared memory!" << std::endl;
+      exit(1);
+    }
+
+    int mainpid = fork();
+    int splitpid = fork();
+    int current = getpid();
+
+    for (int i = 0; i < 4; i++) {
+      if (pids[i] == 0) {
+        pids[i] = current;
+        break;
+      }
+    }
+
+    auto run_search_shared = [&](int i) {
+      std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
+      std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
+
+      auto result = iter_bytes(starts[i], *res, ends[i]);
+      if (result) {
+        for (int j = 0; j < 4; j++) {
+          int p = pids[j];
+          if (current != p) {
+            kill(p, SIGTERM);
+          }
+        }
+
+        std::cout << "Password found: " << *result << std::endl;
+        munmap(pids, 4 * sizeof(int));
+        exit(0);
+      }
+    };
+
+    if (mainpid > 0 && splitpid > 0) { // parent inside main ~ main
+      run_search_shared(0);
+    } else if (mainpid > 0 && splitpid == 0) { // child inside main
+      run_search_shared(1);
+    } else if (mainpid == 0 && splitpid > 0) { // parent inside child
+      run_search_shared(2);
+    } else { // child inside child
+      run_search_shared(3);
+
+    }
+  }
+
+  case '6': {
+    std::cout << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted." << std::endl;
+    std::cout << ">> ";
+    std::string hash;
+    std::cin >> hash;
+
+    auto res = check_line(hash, 'h');
+    if (!res) {
+        std::cout << "Invalid hash!" << std::endl;
+        break;
+    }
+
+    const char* shm_name = "/shared_mem";
+    int shm_fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
+    if (shm_fd == -1) {
+        std::cout << "Failed to create shared memory object!" << std::endl;
+        exit(1);
+    }
+
+    ftruncate(shm_fd, 4 * sizeof(int));
+
+    int pids[4] = {0};
+    write(shm_fd, pids, sizeof(pids));
+
+    int mainpid = fork();
+    int splitpid = fork();
+    int current = getpid();
+
+    lseek(shm_fd, 0, SEEK_SET);
+    read(shm_fd, pids, sizeof(pids));
+
+    for (int i = 0; i < 4; i++) {
+        if (pids[i] == 0) {
+            pids[i] = current;
+            break;
+        }
+    }
+
+    lseek(shm_fd, 0, SEEK_SET);
+    write(shm_fd, pids, sizeof(pids));
+
+    auto run_search_shared = [&](int i) {
+        std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
+        std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
+
+        auto result = iter_bytes(starts[i], *res, ends[i]);
+        if (result) {
+            lseek(shm_fd, 0, SEEK_SET);
+            read(shm_fd, pids, sizeof(pids)) != sizeof(pids);
+            for (int j = 0; j < 4; j++) {
+                int p = pids[j];
+                if (current != p) {
+                    kill(p, SIGTERM);
+                }
+            }
+
+            std::cout << "Password found: " << *result << std::endl;
+
+            close(shm_fd);
+            shm_unlink(shm_name);
+            exit(0);
+        }
+    };
+
+    if (mainpid > 0 && splitpid > 0) { // parent inside main ~ main
+        run_search_shared(0);
+    } else if (mainpid > 0 && splitpid == 0) { // child inside main
+        run_search_shared(1);
+    } else if (mainpid == 0 && splitpid > 0) { // parent inside child
+        run_search_shared(2);
+    } else { // child inside child
+        run_search_shared(3);
+    }
+}
 
   default: {
     std::cout << "Invalid option!" << std::endl;
