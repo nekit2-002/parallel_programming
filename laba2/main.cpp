@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <fcntl.h>
 #include <iomanip>
 #include <iostream>
 #include <openssl/md5.h>
@@ -8,7 +9,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <vector>
-#include <fcntl.h>
 
 std::string md5(const std::string &pswd) {
   unsigned char hash[MD5_DIGEST_LENGTH];
@@ -141,7 +141,8 @@ int main() {
   std::cout << "4 -- run parallel search via double fork()" << std::endl;
   std::cout << "5 -- run parallel search  via double fork() with shared memory"
             << std::endl;
-  std::cout << "6 -- run parallel search via  double fork() with shm_open" << std::endl;
+  std::cout << "6 -- run parallel search via  double fork() with shm_open"
+            << std::endl;
   char option;
   std::cout << ">> ";
   std::cin >> option;
@@ -282,27 +283,28 @@ int main() {
       run_search_shared(2);
     } else { // child inside child
       run_search_shared(3);
-
     }
   }
 
   case '6': {
-    std::cout << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted." << std::endl;
+    std::cout
+        << "Input 32 symbols of hash-sum. Symbols a-f and 0-9 are permitted."
+        << std::endl;
     std::cout << ">> ";
     std::string hash;
     std::cin >> hash;
 
     auto res = check_line(hash, 'h');
     if (!res) {
-        std::cout << "Invalid hash!" << std::endl;
-        break;
+      std::cout << "Invalid hash!" << std::endl;
+      break;
     }
 
-    const char* shm_name = "/shared_mem";
+    const char *shm_name = "/shared_mem";
     int shm_fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
     if (shm_fd == -1) {
-        std::cout << "Failed to create shared memory object!" << std::endl;
-        exit(1);
+      std::cout << "Failed to create shared memory object!" << std::endl;
+      exit(1);
     }
 
     ftruncate(shm_fd, 4 * sizeof(int));
@@ -318,48 +320,48 @@ int main() {
     read(shm_fd, pids, sizeof(pids));
 
     for (int i = 0; i < 4; i++) {
-        if (pids[i] == 0) {
-            pids[i] = current;
-            break;
-        }
+      if (pids[i] == 0) {
+        pids[i] = current;
+        break;
+      }
     }
 
     lseek(shm_fd, 0, SEEK_SET);
     write(shm_fd, pids, sizeof(pids));
 
     auto run_search_shared = [&](int i) {
-        std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
-        std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
+      std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
+      std::string ends[4] = {"8zzzzz", "hzzzzz", "qzzzzz", "zzzzzz"};
 
-        auto result = iter_bytes(starts[i], *res, ends[i]);
-        if (result) {
-            lseek(shm_fd, 0, SEEK_SET);
-            read(shm_fd, pids, sizeof(pids)) != sizeof(pids);
-            for (int j = 0; j < 4; j++) {
-                int p = pids[j];
-                if (current != p) {
-                    kill(p, SIGTERM);
-                }
-            }
-
-            std::cout << "Password found: " << *result << std::endl;
-
-            close(shm_fd);
-            shm_unlink(shm_name);
-            exit(0);
+      auto result = iter_bytes(starts[i], *res, ends[i]);
+      if (result) {
+        lseek(shm_fd, 0, SEEK_SET);
+        read(shm_fd, pids, sizeof(pids)) != sizeof(pids);
+        for (int j = 0; j < 4; j++) {
+          int p = pids[j];
+          if (current != p) {
+            kill(p, SIGTERM);
+          }
         }
+
+        std::cout << "Password found: " << *result << std::endl;
+
+        close(shm_fd);
+        shm_unlink(shm_name);
+        exit(0);
+      }
     };
 
     if (mainpid > 0 && splitpid > 0) { // parent inside main ~ main
-        run_search_shared(0);
+      run_search_shared(0);
     } else if (mainpid > 0 && splitpid == 0) { // child inside main
-        run_search_shared(1);
+      run_search_shared(1);
     } else if (mainpid == 0 && splitpid > 0) { // parent inside child
-        run_search_shared(2);
+      run_search_shared(2);
     } else { // child inside child
-        run_search_shared(3);
+      run_search_shared(3);
     }
-}
+  }
 
   default: {
     std::cout << "Invalid option!" << std::endl;
