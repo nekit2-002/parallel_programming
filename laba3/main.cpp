@@ -74,16 +74,12 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
 // main process overload
 std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
                                       std::string stop_word, int pids[3]) {
-  for (int i = 0; i < 3; i++) {
-    std::cout << "Recieved pid is: " << pids[i] << std::endl;
-  }
   int i = 5;
   while (pswd != stop_word) {
-    for (int i = 0; i < 3; i++) {
-      if (getpgid(pids[i] < 0)) {
-        std::cout << "Process with pid " << pids[i] << " has finished earlier" << std::endl;
-        for (int j = 0; j < 3; j++) {
-            if (j != i) kill(pids[j], SIGTERM);
+    for (int j = 0; j < 3; j++) {
+      if (kill(pids[j], 0) != 0) {
+        for (int k = 0; k < 3; k++) {
+            if (k != j) kill(pids[k], SIGTERM);
         }
         exit(0);
       }
