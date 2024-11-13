@@ -71,6 +71,7 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   return std::nullopt;
 }
 
+// main process overload
 std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
                                       std::string stop_word, int pids[3]) {
   int i = 5;
@@ -123,6 +124,7 @@ std::optional<std::string> iter_bytes(std::string pswd, std::string hash,
   return std::nullopt;
 }
 
+// argv[1] is assumed to be the password
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
   std::string starts[4] = {"000000", "900000", "i00000", "r00000"};
@@ -143,11 +145,6 @@ int main(int argc, char *argv[]) {
       auto res = iter_bytes(starts[0], hash, ends[0], pids);
       if (res) {
         std::cout << "Password found: " << *res << std::endl;
-      }
-
-      for (int i = 0; i < 3; i++) {
-        std::cout << "Recieved pid is:" << pids[i] << std::endl;
-        kill(pids[i], SIGTERM);
       }
     } else {
       if (rank == i) {
