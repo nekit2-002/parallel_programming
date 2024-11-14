@@ -1,4 +1,4 @@
-# Лабораторная работа №3
+# Лабораторная работа №4
 Лабораторная работа на распараллеливание поиска пароля через разделение работы по процессам. Подбирается пароль
 из шести символов диапазона "a..z" и "0-9" под хеш-сумму функции **md5** (128 бит).
 
@@ -9,6 +9,6 @@
 
 Для запуска выполнить:
 ```
-mpic++ -o main $HOME/parallel_programming/laba3/main.cpp -lssl -lcrypto
+mpic++ -o main $HOME/parallel_programming/laba4/main.cpp -lssl -lcrypto
 mpirun -np 4 ./main password-to-search
 ```
